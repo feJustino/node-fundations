@@ -1,32 +1,32 @@
 import http from 'node:http'
 import { json } from './middlewares/json.js'
+import { routes } from './routes.js'
 
-const users = []
+//Três formas do cliente enviar dados:
+
+//Query Parameters: URL Statefull => Filtros; Paginação; Não obrigatórios
+//Route Parameters: Identificação de Recurso
+//Request Body: Envio de inforamções de um formulário (HTTPs)
 
 const server = http.createServer(async (req, res) => {
   const { method, url } = req
 
   await json(req, res)
 
-  console.log(req.body)
-  if (method === 'GET' & url === '/users') {
-    return res
-      .end(JSON.stringify(users))
+  const route = routes.find(route =>
+    route.method === method && route.path.test(url)
+  )
+
+  if (route) {
+    const routeParams = req.url.match(route.path)
+    
+    const params = {...routeParams.groups}
+    req.params = params
+
+    return route.handler(req, res)
   }
 
-
-  if (method === 'POST' & url === '/users') {
-    const { name, email } = req.body
-    users.push({
-      id: 1,
-      name,
-      email
-    })
-
-    return res.end('Criação de usuário')
-  }
-
-  return res.end('hello world')
+  return res.writeHead(404).end()
 })
 
 server.listen(3333) //=> setamos aqui a porta que o server irá rodar
